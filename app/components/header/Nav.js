@@ -14,14 +14,14 @@ export default function Nav() {
     <>
       <li className="group  relative hidden md:block ">
         <Link
-          href="/"
+          href="/sponsor-signup"
           className={`flex items-center justify-between py-3.5 font-display text-base  ${
-            "/".split("/")[1] == pathname.split("/")[1]
+            "/create".split("/")[1] == pathname.split("/")[1]
               ? "text-accent "
               : "text-jacarta-700 "
-          }  hover:text-accent focus:text-accent dark:hover:text-accent dark:focus:text-accent lg:px-5 text-black`}
+          }  hover:text-accent focus:text-accent dark:hover:text-accent dark:focus:text-accent lg:px-0 text-black`}
         >
-          Home
+          Become a Sponsor
         </Link>
       </li>
       <li className="group hidden md:block">

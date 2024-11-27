@@ -55,7 +55,17 @@ export function Providers({ children }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={darkTheme()}>{children}</RainbowKitProvider>
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: "#29FF81",
+            accentColorForeground: "black",
+            borderRadius: "large",
+            fontStack: "system",
+            overlayBlur: "small",
+          })}
+        >
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

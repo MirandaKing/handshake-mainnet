@@ -221,7 +221,7 @@
   color: black;
   border-bottom: 2px solid black;
 }
-h3 {
+/* h3 {
   display: inline-block;
   position: relative;
   text-align: center;
@@ -269,7 +269,7 @@ h3:after {
   100% {
     transform: translateX(0);
   }
-}
+} */
 
 .button-50 {
   appearance: button;

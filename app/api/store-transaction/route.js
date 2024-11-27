@@ -11,12 +11,17 @@ export async function POST(req) {
     senderSignature,
     receiverSignature,
     status,
+    isNFT,
+    tokenId,
+    isSponsored,
     tokenName,
     initiateDate,
     approveDate,
     transectionDate,
     decimals,
+    deadline,
     nonce,
+    permitSignature,
   } = await req.json();
 
   // Connect to MongoDB
@@ -47,12 +52,17 @@ export async function POST(req) {
       senderSignature,
       receiverSignature,
       status,
+      isNFT,
+      tokenId,
+      isSponsored,
       tokenName,
       initiateDate,
       approveDate,
       transectionDate,
       decimals,
+      deadline,
       nonce,
+      permitSignature,
     });
 
     return NextResponse.json(

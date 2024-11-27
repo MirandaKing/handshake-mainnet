@@ -1,16 +1,28 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./InitiateTransaction.css";
 import { getTokenDetails } from "@/app/quickaccess/getTokenDetails";
 import { useAccount } from "wagmi";
-import { formatUnits } from "viem";
+import { createPublicClient, formatEther, formatUnits, http } from "viem";
 import { createWalletClient, custom } from "viem";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { parseUnits, parseEther } from "viem";
 import { formSchemaLoadToken, formSchemaTransaction } from "./schema";
 import LoadingSpinner from "./LoadingSpinner";
+import { Send } from "lucide-react";
+
+const publicClient = createPublicClient({
+  chain: {
+    id: 199, // BTTC Donau mainnet chain ID
+    rpcUrls: {
+      public: "https://rpc.bittorrentchain.io",
+      websocket: "https://rpc.bittorrentchain.io", // WebSocket URL (optional)
+    },
+  },
+  transport: http("https://rpc.bittorrentchain.io/"), // Passing RPC URL to http function
+});
 
 const InitiateTransaction = ({ onClose }) => {
   const { address, isConnected } = useAccount();
@@ -26,6 +38,13 @@ const InitiateTransaction = ({ onClose }) => {
     amount: "",
   });
   const [isERC20, setIsERC20] = useState(false);
+  const [isSponsored, setIsSponsored] = useState(false);
+  const [isFetchingVideo, setIsFetchingVideo] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [hasWatchedVideo, setHasWatchedVideo] = useState(false);
+  const [showSavings, setShowSavings] = useState(false);
+  const videoRef = useRef(null);
+
   const defaultTokenDetails = {
     name: "",
     symbol: "",
@@ -33,7 +52,49 @@ const InitiateTransaction = ({ onClose }) => {
     balance: "",
   };
 
+  const [transactionDetails, setTransactionDetails] = useState({
+    tokenToSend: "BTTC",
+    amountToSend: "0",
+    approxGasFees: "700",
+    remainingBalance: "0",
+    totalCost: "0",
+  });
   const [tokenDetails, setTokenDetails] = useState(defaultTokenDetails);
+
+  // fetching user balance function
+  const [userBTTCBalance, setuserBTTCBalance] = useState(0);
+
+  const fetchUserBalance = async () => {
+    const userBTTC = await publicClient.getBalance({
+      address: address ? address : "0xA0Cf798816D4b9b9866b5330EEa46a18382f251e",
+    });
+    console.log("userBTTC", formatEther(userBTTC));
+    setuserBTTCBalance(formatEther(userBTTC));
+  };
+
+  useEffect(() => {
+    fetchUserBalance();
+  }, [address]);
+
+  //  Handle sponsored video checkbox
+  const handleSponsoredChange = () => {
+    setIsSponsored(!isSponsored);
+    if (!isSponsored) {
+      setIsFetchingVideo(true);
+      setTimeout(() => {
+        setIsFetchingVideo(false);
+        setIsVideoReady(true);
+      }, Math.random() * 1000 + 2000); // Random time between 2-3 seconds
+    } else {
+      setIsVideoReady(false);
+      setHasWatchedVideo(false);
+      setShowSavings(false);
+    }
+  };
+  const handleVideoEnd = () => {
+    setHasWatchedVideo(true);
+    setShowSavings(true);
+  };
 
   // Handle onchange event for input fields and update the transaction state
   const handleInputChange = (e) => {
@@ -104,7 +165,7 @@ const InitiateTransaction = ({ onClose }) => {
       setIsLoading(true);
       const client = createWalletClient({
         chain: {
-          id: 199, // BTTC Donau testnet chain ID
+          id: 199, // BTTC Donau mainnet chain ID
           rpcUrls: {
             public: "https://rpc.bittorrentchain.io",
             websocket: "https://rpc.bittorrentchain.io", // WebSocket URL (optional)
@@ -220,170 +281,274 @@ const InitiateTransaction = ({ onClose }) => {
     };
   }, [transaction.receiver, transaction.token, transaction.amount]);
 
+  const updateTransactionDetails = () => {
+    const amountToSend = parseFloat(transaction.amount) || 0;
+    const gasFees = parseFloat(transactionDetails.approxGasFees);
+    const totalCost = amountToSend ? amountToSend : 0 + gasFees;
+    console.log("totalCost", totalCost);
+    const currentBalance = isERC20
+      ? formatEther(tokenDetails.balance) || 0
+      : userBTTCBalance; // Assume 100 BTTC for demo
+    const remainingBalance = Math.max(currentBalance - totalCost, 0).toFixed(6);
+
+    setTransactionDetails({
+      tokenToSend: isERC20 ? tokenDetails.symbol || "ERC20" : "BTTC",
+      amountToSend: amountToSend.toFixed(6),
+      approxGasFees: gasFees.toFixed(6),
+      remainingBalance,
+      totalCost: totalCost.toFixed(6),
+    });
+  };
+
+  useEffect(() => {
+    updateTransactionDetails();
+  }, [transaction, isERC20, tokenDetails, userBTTCBalance]);
+
   return (
-    <div className="popup-overlay">
-      <div className="popup-container">
-        <div className="popup-card">
-          <div className="closeIcon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              height="24px"
-              viewBox="0 0 24 24"
-              width="24px"
-              fill="#000000"
-              onClick={onClose}
-            >
-              <path d="M0 0h24v24H0V0z" fill="none" />
-              <path d="M18.3 5.71c-.39-.39-1.02-.39-1.41 0L12 10.59 7.11 5.7c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41L10.59 12 5.7 16.89c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L12 13.41l4.89 4.89c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
-            </svg>
-          </div>
-          <h1 className="send-transaction">Send Transaction</h1>
-
-          <form
-            className="mt-6 flex flex-col item-center justify-center w-full px-4"
-            onSubmit={signTransaction}
+    <div className="p-2 md:p-8 md:pt-2">
+      <h1 className="text-3xl font-bold text-center text-black mb-6 font-dmsans">
+        Token Transfer
+      </h1>
+      <form onSubmit={signTransaction} className="space-y-6">
+        <div>
+          <label
+            htmlFor="receiver"
+            className="block text-sm font-medium text-gray-700 mb-1"
           >
-            <div className="w-full inputParent">
-              <label>Receiver Address</label>
-              <input
-                type="text"
-                name="receiver"
-                placeholder="Enter Receiver's Address"
-                className="text-black"
-                value={transaction.receiver || ""}
-                onChange={handleInputChange}
-                style={{
-                  border:
-                    errorDisplay && errors?.receiver ? "1px solid red" : "",
-                }}
-              />
-              {errorDisplay && errors?.receiver && (
-                <span className="text-red text-left mt-2 text-sm">
-                  *{errors.receiver}
-                </span>
-              )}
-            </div>
-
-            <div className="w-full inputParent">
-              <label>Type:</label>
-              <div
-                className="flex items-center cursor-pointer inputDiv"
-                onClick={handleCheckboxChange}
-              >
-                <input
-                  type="checkbox"
-                  checked={isERC20}
-                  className="form-checkbox h-5 w-5 text-indigo-600"
-                />
-                <span className="ml-2 checkmark text-black">
-                  Send ERC-20 Token
-                </span>
-              </div>
-            </div>
-
-            {isERC20 && (
-              <>
-                <div className="w-full inputParent">
-                  <label>Token:</label>
-                  <input
-                    type="text"
-                    name="token"
-                    placeholder="Enter Token Address"
-                    className="text-black"
-                    value={transaction.token || ""}
-                    onChange={handleInputChange}
-                    style={{
-                      border:
-                        errorDisplay && errorLoadToken ? "1px solid red" : "",
-                    }}
-                  />
-                  {errorDisplay && errorLoadToken && (
-                    <span className="text-red text-left mt-2 text-sm">
-                      *{errorLoadToken}
-                    </span>
-                  )}
-                </div>
-                {isLoadingToken ? (
-                  <>
-                    <button className="load-token">
-                      <LoadingSpinner />
-                      Loading...
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={loadTokenDetails}
-                    className="load-token button-50"
-                    type="button"
-                  >
-                    Load Token
-                  </button>
-                )}
-              </>
-            )}
-            {transaction.token && tokenDetails.name && (
-              <div className="token-details text-left flex flex-col px-4">
-                <span className="text-slate-600 text-base my-4 ">
-                  Name:{" "}
-                  <span className="text-black text-xl font-bold">
-                    {tokenDetails.name}
-                  </span>{" "}
-                </span>
-                <span className="text-slate-600 text-base my-4">
-                  Symbol:{" "}
-                  <span className="text-black text-xl font-bold">
-                    {tokenDetails.symbol}
-                  </span>
-                </span>
-                <span className="text-slate-600 text-base my-4">
-                  Total Balance:{" "}
-                  <span className="text-black text-xl font-bold">
-                    {tokenDetails.balance
-                      ? `${formatUnits(
-                          tokenDetails.balance,
-                          tokenDetails.decimals
-                        )} ${tokenDetails.symbol}`
-                      : null}
-                  </span>
-                </span>
-              </div>
-            )}
-
-            <div className="w-full inputParent">
-              <label>Amount:</label>
-              <input
-                type="text"
-                name="amount"
-                placeholder="Enter Amount"
-                className="text-black"
-                value={transaction.amount || ""}
-                onChange={handleInputChange}
-                style={{
-                  border: errorDisplay && errors?.amount ? "1px solid red" : "",
-                }}
-              />
-              {errorDisplay && errors?.amount && (
-                <span className="text-red text-left mt-2 text-sm">
-                  *{errors.amount}
-                </span>
-              )}
-            </div>
-            <ToastContainer />
-
-            <div className="w-full inputParent">
-              {isLoading ? (
-                <button className="sendReqBtn disabled">
-                  <LoadingSpinner /> Loading...
-                </button>
-              ) : (
-                <button className="sendReqBtn button-50" type="submit">
-                  Send
-                </button>
-              )}
-            </div>
-          </form>
+            Receiver Address
+          </label>
+          <input
+            type="text"
+            id="receiver"
+            name="receiver"
+            placeholder="Enter Receiver's Address"
+            className={`w-full px-3 py-2 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 ${
+              errorDisplay && errors?.receiver
+                ? "border-red-500"
+                : "border-gray-300"
+            }`}
+            value={transaction.receiver}
+            onChange={handleInputChange}
+          />
+          {errorDisplay && errors?.receiver && (
+            <p className="mt-1 text-sm text-red-500">{errors.receiver}</p>
+          )}
         </div>
-      </div>
+
+        <div>
+          <label className="flex items-center space-x-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isERC20}
+              onChange={handleCheckboxChange}
+              className="form-checkbox h-5 w-5 text-gray-600"
+            />
+            <span className="text-gray-700">Send ERC-20 Token</span>
+          </label>
+        </div>
+
+        {isERC20 && (
+          <>
+            <div>
+              <label
+                htmlFor="token"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Token
+              </label>
+              <input
+                type="text"
+                id="token"
+                name="token"
+                placeholder="Enter Token Address"
+                className={`w-full px-3 py-2 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 ${
+                  errorDisplay && errorLoadToken
+                    ? "border-red-500"
+                    : "border-gray-300"
+                }`}
+                value={transaction.token}
+                onChange={handleInputChange}
+              />
+              {errorDisplay && errorLoadToken && (
+                <p className="mt-1 text-sm text-red-500">{errorLoadToken}</p>
+              )}
+            </div>
+            <button
+              onClick={loadTokenDetails}
+              type="button"
+              className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 ${
+                isLoadingToken ? "opacity-75 cursor-not-allowed" : ""
+              }`}
+              disabled={isLoadingToken}
+            >
+              {isLoadingToken ? "Loading..." : "Load Token"}
+            </button>
+          </>
+        )}
+
+        {transaction.token && tokenDetails.name && (
+          <div className="bg-gray-100 p-4 rounded-md space-y-2">
+            <p className="text-sm text-gray-600">
+              Name:{" "}
+              <span className="font-semibold text-gray-800">
+                {tokenDetails.name}
+              </span>
+            </p>
+            <p className="text-sm text-gray-600">
+              Symbol:{" "}
+              <span className="font-semibold text-gray-800">
+                {tokenDetails.symbol}
+              </span>
+            </p>
+            <p className="text-sm text-gray-600">
+              Total Balance:{" "}
+              <span className="font-semibold text-gray-800">
+                {tokenDetails.balance
+                  ? `${formatUnits(
+                      tokenDetails.balance,
+                      tokenDetails.decimals
+                    )} ${tokenDetails.symbol}`
+                  : "N/A"}
+              </span>
+            </p>
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="amount"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Amount
+          </label>
+          <input
+            type="text"
+            id="amount"
+            name="amount"
+            placeholder="Enter Amount"
+            className={`w-full px-3 py-2 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 ${
+              errorDisplay && errors?.amount
+                ? "border-red-500"
+                : "border-gray-300"
+            }`}
+            value={transaction.amount}
+            onChange={handleInputChange}
+          />
+          {errorDisplay && errors?.amount && (
+            <p className="mt-1 text-sm text-red-500">{errors.amount}</p>
+          )}
+        </div>
+
+        <div className="bg-gray-100 p-4 rounded-md space-y-2">
+          <h3 className="font-semibold text-gray-800 mb-2">
+            Transaction Details
+          </h3>
+          <p className="text-sm text-gray-600">
+            Token to Send:{" "}
+            <span className="font-semibold text-gray-800">
+              {transactionDetails.tokenToSend}
+            </span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Amount to Send:{" "}
+            <span className="font-semibold text-gray-800">
+              {transactionDetails.amountToSend}
+            </span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Approx. Gas Fees:{" "}
+            <span className="font-semibold text-gray-800">
+              {transactionDetails.approxGasFees} BTTC
+            </span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Total Cost:{" "}
+            <span className="font-semibold text-gray-800">
+              {transactionDetails.totalCost} {transactionDetails.tokenToSend}
+            </span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Remaining Balance:{" "}
+            <span className="font-semibold text-gray-800">
+              {transactionDetails.remainingBalance}{" "}
+              {transactionDetails.tokenToSend}
+            </span>
+          </p>
+        </div>
+
+        <div>
+          {isERC20 ? (
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isSponsored}
+                onChange={handleSponsoredChange}
+                className="form-checkbox h-5 w-5 text-gray-600"
+              />
+              <span className="text-gray-700">Sponsored Transaction</span>
+            </label>
+          ) : null}
+        </div>
+
+        {isFetchingVideo && (
+          <p className="text-sm text-gray-600 animate-pulse">
+            Fetching sponsored video...
+          </p>
+        )}
+
+        {isVideoReady && !hasWatchedVideo && (
+          <div className="mt-4">
+            <label
+              htmlFor="amount"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Sponsored Video
+            </label>
+            <video
+              ref={videoRef}
+              className="w-full rounded-md"
+              controls
+              onEnded={handleVideoEnd}
+            >
+              <source src="/video/test.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        )}
+
+        {showSavings && (
+          <div
+            className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md"
+            role="alert"
+          >
+            <p className="font-bold">Savings</p>
+            <p>You've saved approximately 700 BTT in gas fees!</p>
+            <p>This transaction gas fees will be paid by the Sponsor!</p>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className={`w-full bg-[#29FF81] text-black font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center ${
+            isLoading || (isSponsored && !hasWatchedVideo)
+              ? "opacity-75 cursor-not-allowed"
+              : ""
+          }`}
+          disabled={isLoading || (isSponsored && !hasWatchedVideo)}
+        >
+          {isLoading ? (
+            "Loading..."
+          ) : isSponsored && !hasWatchedVideo ? (
+            "Watch Full Video"
+          ) : (
+            <>
+              <Send className="w-5 h-5 text-black" />
+              <span className="ml-2">Send Token </span>
+            </>
+          )}
+        </button>
+      </form>
+      <ToastContainer />
     </div>
   );
 };
