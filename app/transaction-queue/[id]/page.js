@@ -14,7 +14,7 @@ import { formatUnits } from "viem";
 
 const publicClient = createPublicClient({
   chain: {
-    id: 84532, // BTTC Donau testnet chain ID
+    id: 199, // BTTC Donau mainnet chain ID
     rpcUrls: {
       public: "https://base-sepolia.blockpi.network/v1/rpc/public", // BTTC Donau testnet RPC URL
     },
@@ -23,7 +23,7 @@ const publicClient = createPublicClient({
 });
 const walletClient = createWalletClient({
   chain: {
-    id: 84532, // BTTC Donau testnet chain ID
+    id: 199, // BTTC Donau mainnet chain ID
     rpcUrls: {
       public: "https://rpc.bittorrentchain.io",
       websocket: "https://rpc.bittorrentchain.io", // WebSocket URL (optional)
@@ -51,7 +51,7 @@ export default function TransactionRequestDetails({ params }) {
         transaction.amount,
         transaction.tokenAddress !== ""
           ? transaction.tokenAddress
-          : "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+          : "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
         transaction.tokenName,
       ];
 
@@ -72,7 +72,7 @@ export default function TransactionRequestDetails({ params }) {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+        address: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
         abi: handshakeABI,
         functionName: functionCalled,
         args: [

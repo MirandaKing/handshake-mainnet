@@ -4,7 +4,15 @@ import React, { useEffect, useRef, useState } from "react";
 import "./InitiateTransaction.css";
 import { getTokenDetails } from "@/app/quickaccess/getTokenDetails";
 import { useAccount } from "wagmi";
-import { createPublicClient, formatEther, formatUnits, http } from "viem";
+import {
+  createPublicClient,
+  encodePacked,
+  formatEther,
+  formatUnits,
+  getContract,
+  http,
+  keccak256,
+} from "viem";
 import { createWalletClient, custom } from "viem";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -12,6 +20,7 @@ import { parseUnits, parseEther } from "viem";
 import { formSchemaLoadToken, formSchemaTransaction } from "./schema";
 import LoadingSpinner from "./LoadingSpinner";
 import { Send } from "lucide-react";
+import permitTokenAbi from "../../quickaccess/PermittokenABI.json";
 
 const publicClient = createPublicClient({
   chain: {
@@ -138,12 +147,232 @@ const InitiateTransaction = ({ onClose }) => {
     setIsERC20(!isERC20);
   };
 
+  // const signTransaction = async (e) => {
+  //   e.preventDefault();
+  //   // if (transaction.receiver === "" || transaction.amount === "") {
+  //   //   console.log("Please Enter Details");
+  //   //   return;
+  //   // }
+
+  //   setErrorDisplay(false);
+
+  //   const formData = {
+  //     receiver: transaction.receiver,
+  //     amount: transaction.amount,
+  //     token: isERC20 ? transaction.token : undefined,
+  //   };
+
+  //   const { ethereum } = window;
+  //   if (!ethereum) {
+  //     throw new Error("Metamask is not installed, please install!");
+  //   }
+  //   // let amount = parseUnits(transaction.amount, tokenDetails.decimals);
+  //   console.log(transaction.amount);
+
+  //   try {
+  //     formSchemaTransaction.parse(formData);
+  //     setIsLoading(true);
+  //     const client = createWalletClient({
+  // chain: {
+  //   id: 199, // BTTC Donau mainnet chain ID
+  //   rpcUrls: {
+  //     public: "https://rpc.bittorrentchain.io",
+  //     websocket: "https://rpc.bittorrentchain.io", // WebSocket URL (optional)
+  //   },
+  //       },
+  //       transport: custom(window ? window.ethereum : ""),
+  //     });
+
+  //     const url = `/api/latest-nonce?address=${address}`;
+
+  //     const response = await fetch(url);
+  //     const data = await response.json();
+  //     console.log(data);
+  //     let nonce = parseInt(data.nonce) + 1;
+  //     var amount = transaction.amount;
+  //     if (isERC20) {
+  //       amount = parseUnits(transaction.amount, tokenDetails.decimals);
+  //     } else {
+  //       amount = parseEther(transaction.amount);
+  //     }
+
+  //     const signature = await client.signTypedData({
+  //       account: address,
+  //       domain: {
+  //         name: "HandshakeTokenTransfer",
+  //         version: "1",
+  //         chainId: "199",
+  //         verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+  //       },
+  //       types: {
+  //         EIP712Domain: [
+  //           { name: "name", type: "string" },
+  //           { name: "version", type: "string" },
+  //           { name: "chainId", type: "uint256" },
+  //           { name: "verifyingContract", type: "address" },
+  //         ],
+  //         initiateTransaction: [
+  //           { name: "nonce", type: "uint256" },
+  //           { name: "sender", type: "address" },
+  //           { name: "receiver", type: "address" },
+  //           { name: "amount", type: "uint256" },
+  //           { name: "tokenName", type: "string" },
+  //         ],
+  //       },
+  //       primaryType: "initiateTransaction",
+  //       message: {
+  //         nonce: nonce,
+  //         sender: address,
+  //         receiver: transaction.receiver,
+  //         amount: amount,
+  //         tokenName: tokenDetails.symbol !== "" ? tokenDetails.symbol : "BTTC",
+  //       },
+  //     });
+  //     const currentDate = new Date();
+  //     console.log("Signature:", signature);
+  //     if (signature) {
+  //       const userData = {
+  //         senderAddress: address,
+  //         receiverAddress: transaction.receiver,
+  //         amount: amount.toString(),
+  //         tokenAddress: transaction.token,
+  //         senderSignature: signature,
+  //         receiverSignature: "",
+  //         status: "inititated",
+  //         tokenName: tokenDetails.symbol !== "" ? tokenDetails.symbol : "BTTC",
+  //         initiateDate: currentDate,
+  //         decimals: tokenDetails.symbol !== "" ? tokenDetails.decimals : 18,
+  //         nonce: nonce,
+  //       };
+  //       console.log(userData);
+  //       try {
+  //         console.log("entered into try block");
+  //         let result = await fetch(`api/store-transaction`, {
+  //           method: "POST",
+  //           body: JSON.stringify(userData),
+  //         });
+  //         const response = await result.json();
+  //         toast.success("Signed Sucessfully");
+  //         await new Promise((resolve) => setTimeout(resolve, 3000));
+  //         window.location.reload();
+
+  //         setIsLoading(false);
+  //         onClose();
+  //         // console.log(response.message);
+  //       } catch (error) {
+  //         toast.error("Error while signing");
+  //         setIsLoading(false);
+  //         console.error("Error signing transaction:", error);
+  //         // throw error;
+  //       }
+  //     }
+  //   } catch (err) {
+  //     console.log(err.formErrors ? err.formErrors : err);
+  //     setErrors(err.formErrors?.fieldErrors);
+  //     setErrorDisplay(true);
+  //     console.error("Error signing transaction:", err);
+
+  //     // throw error;
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  const generateNonce = async () => {
+    if (!address) {
+      throw new Error("Address is required");
+    }
+
+    console.log("The address:", address);
+
+    const timestamp = BigInt(Math.floor(Date.now() / 1000));
+    console.log("Timestamp:", timestamp.toString()); // Convert BigInt to string for loggin
+
+    const packedData = keccak256(
+      encodePacked(["address", "uint256"], [address, timestamp])
+    );
+
+    console.log("nonce data:", packedData);
+    return keccak256(packedData);
+  };
+
+  const getPermitSignature = async (deadline) => {
+    if (!isSponsored || !isERC20) return;
+
+    const client = createWalletClient({
+      chain: {
+        id: 199, // BTTC Donau mainnet chain ID
+        rpcUrls: {
+          public: "https://rpc.bittorrentchain.io",
+          websocket: "https://rpc.bittorrentchain.io", // WebSocket URL (optional)
+        },
+      },
+      transport: custom(window ? window.ethereum : ""),
+    });
+
+    const tokenAddress = transaction.token;
+    const spender = "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE"; // Address of the sponsor contract
+    const value = parseUnits(transaction.amount, tokenDetails.decimals);
+
+    const contract = getContract({
+      address: tokenAddress,
+      abi: permitTokenAbi,
+      client: publicClient,
+    });
+    const nonce = await contract.read.nonces([address]);
+    const eip712Domain = await contract.read.eip712Domain();
+
+    try {
+      const signature = await client.signTypedData({
+        account: address,
+        domain: {
+          name: eip712Domain[1],
+          version: eip712Domain[2],
+          chainId: 199, // BTTC Donau testnet
+          verifyingContract: tokenAddress,
+        },
+        types: {
+          EIP712Domain: [
+            { name: "name", type: "string" },
+            { name: "version", type: "string" },
+            { name: "chainId", type: "uint256" },
+            { name: "verifyingContract", type: "address" },
+          ],
+          Permit: [
+            { name: "owner", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "value", type: "uint256" },
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" },
+          ],
+        },
+        primaryType: "Permit",
+        message: {
+          owner: address,
+          spender,
+          value,
+          nonce,
+          deadline,
+        },
+      });
+      return signature;
+    } catch (error) {
+      console.error("Error signing permit:", error);
+      toast.error("Failed to sign permit for sponsored transaction");
+      return null;
+    }
+  };
+
   const signTransaction = async (e) => {
     e.preventDefault();
     // if (transaction.receiver === "" || transaction.amount === "") {
     //   console.log("Please Enter Details");
     //   return;
     // }
+    if (isSponsored && !hasWatchedVideo) {
+      toast.error("Please watch the video before proceeding.");
+      return;
+    }
 
     setErrorDisplay(false);
 
@@ -174,51 +403,95 @@ const InitiateTransaction = ({ onClose }) => {
         transport: custom(window ? window.ethereum : ""),
       });
 
-      const url = `/api/latest-nonce?address=${address}`;
+      // const url = `/api/latest-nonce?address=${address}`;
 
-      const response = await fetch(url);
-      const data = await response.json();
-      console.log(data);
-      let nonce = parseInt(data.nonce) + 1;
+      // const response = await fetch(url);
+      // const data = await response.json();
+      // console.log(data);
+
+      // let nonce = parseInt(data.nonce) + 1;
+      let nonce = await generateNonce();
+      console.log("nonceeeeee", nonce);
       var amount = transaction.amount;
-      if (isERC20) {
+      let signature;
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 604800);
+      if (!isERC20) {
+        console.log("in native");
         amount = parseUnits(transaction.amount, tokenDetails.decimals);
+        signature = await client.signTypedData({
+          account: address,
+          domain: {
+            name: "HandshakeTokenTransfer",
+            version: "1",
+            chainId: "199",
+            verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+          },
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" },
+            ],
+            initiateTransaction: [
+              { name: "sender", type: "address" },
+              { name: "receiver", type: "address" },
+              { name: "amount", type: "uint256" },
+              { name: "deadline", type: "uint256" },
+              { name: "nonce", type: "uint256" },
+            ],
+          },
+          primaryType: "initiateTransaction",
+          message: {
+            sender: address,
+            receiver: transaction.receiver,
+            amount: amount,
+            deadline: deadline,
+            nonce: nonce,
+          },
+        });
       } else {
         amount = parseEther(transaction.amount);
+        signature = await client.signTypedData({
+          account: address,
+          domain: {
+            name: "HandshakeTokenTransfer",
+            version: "1",
+            chainId: "199",
+            verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+          },
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" },
+            ],
+            initiateTransaction: [
+              { name: "sender", type: "address" },
+              { name: "receiver", type: "address" },
+              { name: "tokenAddress", type: "address" },
+              { name: "amount", type: "uint256" },
+              { name: "deadline", type: "uint256" },
+              { name: "nonce", type: "bytes32" },
+            ],
+          },
+          primaryType: "initiateTransaction",
+          message: {
+            sender: address,
+            receiver: transaction.receiver,
+            tokenAddress: transaction.token,
+            amount: amount,
+            deadline: deadline,
+            nonce: nonce,
+          },
+        });
+        var permitSignature = "NA";
+        if (isSponsored) {
+          permitSignature = await getPermitSignature(deadline); // added for taking permit signature
+        }
       }
 
-      const signature = await client.signTypedData({
-        account: address,
-        domain: {
-          name: "HandshakeTokenTransfer",
-          version: "1",
-          chainId: "199",
-          verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
-        },
-        types: {
-          EIP712Domain: [
-            { name: "name", type: "string" },
-            { name: "version", type: "string" },
-            { name: "chainId", type: "uint256" },
-            { name: "verifyingContract", type: "address" },
-          ],
-          initiateTransaction: [
-            { name: "nonce", type: "uint256" },
-            { name: "sender", type: "address" },
-            { name: "receiver", type: "address" },
-            { name: "amount", type: "uint256" },
-            { name: "tokenName", type: "string" },
-          ],
-        },
-        primaryType: "initiateTransaction",
-        message: {
-          nonce: nonce,
-          sender: address,
-          receiver: transaction.receiver,
-          amount: amount,
-          tokenName: tokenDetails.symbol !== "" ? tokenDetails.symbol : "BTTC",
-        },
-      });
       const currentDate = new Date();
       console.log("Signature:", signature);
       if (signature) {
@@ -230,10 +503,15 @@ const InitiateTransaction = ({ onClose }) => {
           senderSignature: signature,
           receiverSignature: "",
           status: "inititated",
+          isNFT: false,
+          tokenId: "",
+          isSponsored: isSponsored ? true : false,
           tokenName: tokenDetails.symbol !== "" ? tokenDetails.symbol : "BTTC",
           initiateDate: currentDate,
           decimals: tokenDetails.symbol !== "" ? tokenDetails.decimals : 18,
           nonce: nonce,
+          deadline: deadline.toString(),
+          permitSignature: permitSignature,
         };
         console.log(userData);
         try {
@@ -243,12 +521,10 @@ const InitiateTransaction = ({ onClose }) => {
             body: JSON.stringify(userData),
           });
           const response = await result.json();
-          toast.success("Signed Sucessfully");
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          window.location.reload();
-
+          toast.success("Token transfer initiated successfully!");
           setIsLoading(false);
-          onClose();
+          window.location.reload();
+          // onClose();
           // console.log(response.message);
         } catch (error) {
           toast.error("Error while signing");

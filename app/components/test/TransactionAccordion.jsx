@@ -81,9 +81,9 @@ const CustomGridItem = styled(Grid)({
 });
 const publicClient = createPublicClient({
   chain: {
-    id: 199, // BTTC Donau testnet chain ID
+    id: 199, // BTTC Donau mainnet chain ID
     rpcUrls: {
-      public: "https://rpc.bittorrentchain.io", // BTTC Donau testnet RPC URL
+      public: "https://rpc.bittorrentchain.io", // BTTC Donau mainnet RPC URL
     },
   },
   transport: http("https://rpc.bittorrentchain.io"), // Passing RPC URL to http function
@@ -93,7 +93,7 @@ let walletClient;
 if (typeof window !== "undefined" && window.ethereum) {
   walletClient = createWalletClient({
     chain: {
-      id: 199, // BTTC Donau testnet chain ID
+      id: 199, // BTTC Donau mainnet chain ID
       rpcUrls: {
         public: "https://rpc.bittorrentchain.io",
         websocket: "https://rpc.bittorrentchain.io", // WebSocket URL (optional)
@@ -112,50 +112,99 @@ const TransactionAccordion = ({ transactions }) => {
     console.log(transaction);
     try {
       setIsLoading(true);
+      console.log("cp3");
+
       const client = createWalletClient({
         chain: {
-          id: 199, // BTTC Donau testnet chain ID
+          id: 199, // BTTC Donau mainnet chain ID
           rpcUrls: {
-            public: "https://rpc.bittorrentchain.io",
-            websocket: "https://rpc.bittorrentchain.io", // WebSocket URL (optional)
+            public: "https://rpc.bittorrentchain.io/",
+            websocket: "https://rpc.bittorrentchain.io/", // WebSocket URL (optional)
           },
         },
         transport: custom(window.ethereum),
       });
+      console.log("cp2");
 
-      const amount = parseUnits(transaction.amount, transaction.decimlals);
-      const signature = await client.signTypedData({
-        account: address,
-        domain: {
-          name: "HandshakeTokenTransfer",
-          version: "1",
-          chainId: "199",
-          verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
-        },
-        types: {
-          EIP712Domain: [
-            { name: "name", type: "string" },
-            { name: "version", type: "string" },
-            { name: "chainId", type: "uint256" },
-            { name: "verifyingContract", type: "address" },
-          ],
-          signByReceiver: [
-            { name: "nonce", type: "uint256" },
-            { name: "sender", type: "address" },
-            { name: "receiver", type: "address" },
-            { name: "amount", type: "uint256" },
-            { name: "tokenName", type: "string" },
-          ],
-        },
-        primaryType: "signByReceiver",
-        message: {
-          nonce: transaction.nonce,
-          sender: transaction.senderAddress,
-          receiver: transaction.receiverAddress,
-          amount: amount,
-          tokenName: transaction.tokenName,
-        },
-      });
+      // const amount = parseUnits(transaction.amount, transaction.decimals);
+      let signature;
+      console.log("cp1");
+      if (transaction.isNFT) {
+        console.log("inside NFT");
+        signature = await client.signTypedData({
+          account: address,
+          domain: {
+            name: "HandshakeTokenTransfer",
+            version: "1",
+            chainId: "199",
+            verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+          },
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" },
+            ],
+            signByReceiver: [
+              { name: "sender", type: "address" },
+              { name: "receiver", type: "address" },
+              { name: "tokenAddress", type: "address" },
+              { name: "tokenId", type: "uint256" },
+              { name: "deadline", type: "uint256" },
+              { name: "nonce", type: "bytes32" },
+            ],
+          },
+          primaryType: "signByReceiver",
+          message: {
+            sender: transaction.senderAddress,
+            receiver: transaction.receiverAddress,
+            tokenAddress: transaction.tokenAddress,
+            tokenId: transaction.tokenId,
+            deadline: transaction.deadline,
+            nonce: transaction.nonce,
+          },
+        });
+      } else {
+        console.log("inside token");
+        const amount = parseUnits(transaction.amount, transaction.decimals); // cn1 change needed in API
+        // amount can't be null but api passed it null because when data is null
+
+        signature = await client.signTypedData({
+          account: address,
+          domain: {
+            name: "HandshakeTokenTransfer",
+            version: "1",
+            chainId: "199",
+            verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+          },
+          types: {
+            EIP712Domain: [
+              { name: "name", type: "string" },
+              { name: "version", type: "string" },
+              { name: "chainId", type: "uint256" },
+              { name: "verifyingContract", type: "address" },
+            ],
+            signByReceiver: [
+              { name: "sender", type: "address" },
+              { name: "receiver", type: "address" },
+              { name: "tokenAddress", type: "address" },
+              { name: "amount", type: "uint256" },
+              { name: "deadline", type: "uint256" },
+              { name: "nonce", type: "bytes32" },
+            ],
+          },
+          primaryType: "signByReceiver",
+          message: {
+            sender: transaction.senderAddress,
+            receiver: transaction.receiverAddress,
+            tokenAddress: transaction.tokenAddress,
+            amount: transaction.amount,
+            deadline: transaction.deadline,
+            nonce: transaction.nonce,
+          },
+        });
+      }
       const currentDate = new Date();
       console.log("Signature:", signature);
       if (signature) {
@@ -168,22 +217,21 @@ const TransactionAccordion = ({ transactions }) => {
         console.log(userData);
         try {
           console.log("entered into try block");
-          let result = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}api/store-transaction`,
-            {
-              method: "PUT",
-              body: JSON.stringify(userData),
-              headers: {
-                "Content-Type": "application/json", // This header is crucial for sending JSON data
-              },
-            }
-          );
+          let result = await fetch(`api/store-transaction`, {
+            method: "PUT",
+            body: JSON.stringify(userData),
+            headers: {
+              "Content-Type": "application/json", // This header is crucial for sending JSON data
+            },
+          });
           const response = await result.json();
           // console.log(response.message);
           setIsLoading(false);
           toast.success("Signed Sucessfully");
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          window.location.reload();
+
+          // await new Promise((resolve) => setTimeout(resolve, 3000));
+
+          // window.location.reload();
         } catch (error) {
           console.error("Error signing transaction:", error);
           setIsLoading(false);
@@ -225,8 +273,9 @@ const TransactionAccordion = ({ transactions }) => {
 
       setIsLoading(false);
       toast.success("Rejected Sucessfully");
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      window.location.reload();
+      // await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // window.location.reload();
     } catch (error) {
       console.error("Error Rejecting transaction:", error);
       setIsLoading(false);
@@ -235,101 +284,252 @@ const TransactionAccordion = ({ transactions }) => {
       setIsLoading(false);
     }
   };
-  const executeTransaction = async (transaction) => {
+
+  // sponsored transaction
+
+  const handleSponsoredTxExecute = async (transaction) => {
     setIsLoading(true);
-    console.log(transaction.amount);
     try {
+      const publicClient = createPublicClient({
+        chain: {
+          id: 199,
+          rpcUrls: {
+            public: "https://rpc.bittorrentchain.io/",
+          },
+        },
+        transport: http("https://rpc.bittorrentchain.io/"),
+      });
+
+      const permitsignaturs = transaction.permitSignature;
+      const { v, r, s } = parseSignature(permitsignaturs);
       const TransactionDetails = [
-        transaction.nonce,
         transaction.senderAddress,
         transaction.receiverAddress,
+        transaction.tokenAddress,
         transaction.amount,
-        transaction.tokenAddress !== ""
-          ? transaction.tokenAddress
-          : "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
-        transaction.tokenName,
+        transaction.deadline,
+        transaction.nonce,
       ];
 
-      console.log(TransactionDetails);
+      const args = [
+        transaction.senderSignature,
+        transaction.receiverSignature,
+        transaction.deadline,
+        TransactionDetails,
+        v,
+        r,
+        s,
+      ];
 
-      let functionCalled = "";
-      if (transaction.tokenAddress === "") {
-        functionCalled = "transferNative";
+      const { request } = await publicClient.simulateContract({
+        account: address,
+        address: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+        abi: handshakeABI.abi,
+        functionName: "transferFromWithPermit",
+        args,
+        gasLimit: 3000000,
+      });
+
+      let walletClient;
+      if (typeof window !== "undefined" && window.ethereum) {
+        walletClient = createWalletClient({
+          chain: {
+            id: 199,
+            rpcUrls: {
+              public: "https://rpc.bittorrentchain.io/",
+              websocket: "https://rpc.bittorrentchain.io/",
+            },
+          },
+          transport: custom(window.ethereum),
+        });
+      }
+
+      const execute = await walletClient.writeContract(request);
+      if (execute) {
+        await publicClient.waitForTransactionReceipt({ hash: execute });
       } else {
-        functionCalled = "transferTokens";
+        console.log("transaction hash is undefined");
+      }
+
+      if (execute) {
+        const userData = {
+          TransactionId: transaction.TransactionId,
+          status: "completed",
+          transectionDate: new Date().toISOString(),
+          transactionHash: execute,
+        };
+
+        try {
+          let result = await fetch(`/api/payment-completed`, {
+            method: "PUT",
+            body: JSON.stringify(userData),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          const response = await result.json();
+          console.log("Payment update response: ", response);
+        } catch (error) {
+          console.error("Error updating payment status:", error);
+        }
+
+        toast.success("Transaction executed successfully");
+      }
+    } catch (error) {
+      console.error("Error executing transaction:", error);
+      toast.error("Failed to execute transaction");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  //normal transaction execution
+  const executeTransaction = async (transaction) => {
+    setIsLoading(true);
+
+    try {
+      let functionCalled;
+      let TransactionDetails;
+
+      // Define function and parameters based on transaction type (NFT, Token, or Native)
+      if (transaction.isNFT) {
+        // NFT transfer logic
+        TransactionDetails = [
+          transaction.senderAddress,
+          transaction.receiverAddress,
+          transaction.tokenAddress,
+          transaction.tokenId, // NFT specific parameter
+          transaction.deadline,
+          transaction.nonce,
+        ];
+        functionCalled = "transferNft"; // Call the NFT transfer function
+
+        // Handle NFT approval
+        let approve = await approveNftToken(
+          transaction.tokenId,
+          transaction.tokenAddress,
+          address
+        );
+        console.log("NFT approved: ", approve);
+      } else if (transaction.tokenAddress === "") {
+        console.log("in native accordion");
+        // Native token transfer logic, no approval needed
+        TransactionDetails = [
+          transaction.senderAddress,
+          transaction.receiverAddress,
+          transaction.amount,
+          transaction.deadline, // Assuming deadline is part of the transaction object
+          transaction.nonce,
+        ];
+        functionCalled = "transferNative"; // Call the native token transfer function
+      } else {
+        // ERC20 token transfer logic
+        console.log("in tokenAddress accordion");
+        TransactionDetails = [
+          transaction.senderAddress,
+          transaction.receiverAddress,
+          transaction.tokenAddress,
+          transaction.amount,
+          transaction.deadline, // Assuming deadline is part of the transaction object
+          transaction.nonce,
+        ];
+        functionCalled = "transferTokens"; // Call the token transfer function
+
+        console.log(TransactionDetails);
+        // Handle ERC20 token approval
         let approve = await approveToken(
           transaction.amount,
           transaction.tokenAddress,
           address
         );
-        console.log(approve);
+        console.log("Token approved: ", approve);
       }
 
+      console.log("Transaction Details: ", TransactionDetails);
+      console.log("Function Called: ", functionCalled);
+
+      // Prepare arguments for contract call
+      const args = [
+        transaction.senderSignature,
+        transaction.receiverSignature,
+        TransactionDetails,
+      ];
+
+      console.log("cp1");
+      console.log(transaction, functionCalled);
+      console.log("--->", args);
+      // Simulate the contract execution
       const { request } = await publicClient.simulateContract({
         account: address,
         address: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
-        abi: handshakeABI,
+        abi: handshakeABI.abi,
         functionName: functionCalled,
-        args: [
-          transaction.senderSignature,
-          transaction.receiverSignature,
-          TransactionDetails,
-        ],
+        args,
         ...(functionCalled === "transferNative"
-          ? { value: transaction.amount }
+          ? { value: transaction.amount ?? 0 }
           : {}),
-        gasLimit: 3000000, // Specify the gas limit here
+        gasLimit: 3000000,
       });
 
-      const execute = await walletClient.writeContract(request);
+      console.log(request);
+
+      // Execute the contract function
       const currentDate = new Date();
+      const execute = await walletClient.writeContract(request);
 
       if (execute) {
         await publicClient.waitForTransactionReceipt({ hash: execute });
       } else {
-        throw new Error("Transaction hash is undefined");
+        // throw new Error("Transaction hash is undefined");
+        console.log("tranaction hash is undefined");
       }
+
+      // Update transaction status upon success
       if (execute) {
+        console.log("cp#1 for db");
         const userData = {
-          TransactionId: transaction.TransactionId, // This should be passed in the request to identify the transaction to update
+          TransactionId: transaction.TransactionId,
           status: "completed",
           transectionDate: currentDate,
           transactionHash: execute,
         };
-        console.log(userData);
+
         try {
-          console.log("entered into try block");
-          let result = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL}api/payment-completed`,
-            {
-              method: "PUT",
-              body: JSON.stringify(userData),
-              headers: {
-                "Content-Type": "application/json", // This header is crucial for sending JSON data
-              },
-            }
-          );
+          let result = await fetch(`/api/payment-completed`, {
+            method: "PUT",
+            body: JSON.stringify(userData),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
           const response = await result.json();
-          // console.log(response.message);
+          console.log("Payment update response: ", response);
         } catch (error) {
-          console.error("Error signing transaction:", error);
-          // throw error;
+          console.error("Error updating payment status:", error);
         }
-        toast.success("Execution sucessfull");
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-        window.location.reload();
+
+        toast.success("Execution successful");
+        // await new Promise((resolve) => setTimeout(resolve, 3000));
+        // window.location.reload();
       }
-      setIsLoading(false);
     } catch (error) {
-      setIsLoading(false);
       toast.error("Execution failed");
-      console.log(error);
+      console.error("Error executing transaction: ", error);
     } finally {
       setIsLoading(false);
     }
   };
+
   const handleActionButtonClick = async (transaction, index) => {
     setSelectedIndex(index);
+    if (
+      isSponsorTab &&
+      transaction.isSponsored &&
+      transaction.senderAddress !== address
+    ) {
+      console.log("Sponsored tx called");
+      await handleSponsoredTxExecute(transaction);
+    }
     if (
       address &&
       transaction.senderAddress === address &&
@@ -343,6 +543,7 @@ const TransactionAccordion = ({ transactions }) => {
       transaction.senderAddress === address &&
       transaction.status === "approved"
     ) {
+      console.log("Normal Execute tx called");
       await executeTransaction(transaction);
     }
 

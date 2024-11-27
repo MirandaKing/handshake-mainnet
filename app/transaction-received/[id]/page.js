@@ -62,7 +62,7 @@ export default function TransactionRequestDetails({ params }) {
           name: "HandshakeTokenTransfer",
           version: "1",
           chainId: "199",
-          verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+          verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
         },
         types: {
           EIP712Domain: [
