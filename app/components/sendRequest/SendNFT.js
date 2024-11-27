@@ -200,7 +200,7 @@ export default function SendNFT() {
           name: "HandshakeTokenTransfer", // change the name based on contract
           version: "1",
           chainId: "199",
-          verifyingContract: `${process.env.NEXT_PUBLIC_TESTNET_CONTRACT_ADDRESS}`,
+          verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
         },
         types: {
           EIP712Domain: [
@@ -472,7 +472,7 @@ export default function SendNFT() {
             role="alert"
           >
             <p className="font-bold">Savings</p>
-            <p>You've saved approximately 0.005 BTTC in gas fees!</p>
+            <p>You've saved approximately 700 BTTC in gas fees!</p>
           </div>
         )}
 
