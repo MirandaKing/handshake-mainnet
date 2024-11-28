@@ -137,7 +137,7 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
             name: "HandshakeTokenTransfer",
             version: "1",
             chainId: "199",
-            verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+            verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
           },
           types: {
             EIP712Domain: [
@@ -176,7 +176,7 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
             name: "HandshakeTokenTransfer",
             version: "1",
             chainId: "199",
-            verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+            verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
           },
           types: {
             EIP712Domain: [
@@ -323,7 +323,7 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+        address: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
         abi: handshakeABI.abi,
         functionName: "transferFromWithPermit",
         args,
@@ -461,7 +461,7 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
       // Simulate the contract execution
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+        address: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
         abi: handshakeABI.abi,
         functionName: functionCalled,
         args,
