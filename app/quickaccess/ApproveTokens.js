@@ -43,7 +43,7 @@ export const approveToken = async (amount, tokenContractAddress, address) => {
     address: tokenContractAddress,
     abi: erc20Abi.abi,
     functionName: "approve",
-    args: ["0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE", amount],
+    args: ["0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310", amount],
   });
 
   console.log(request);
@@ -78,7 +78,7 @@ export const approveNftToken = async (
   );
   console.log(allowedAddress);
   // Check if the current allowance is sufficient
-  if (allowedAddress == process.env.NEXT_PUBLIC_TESTNET_CONTRACT_ADDRESS) {
+  if (allowedAddress == "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310") {
     // Already approved for the desired amount, return success
     console.log("already approved");
     return {
@@ -93,7 +93,7 @@ export const approveNftToken = async (
     address: tokenContractAddress,
     abi: erc721Abi.abi,
     functionName: "approve",
-    args: ["0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE", tokenId],
+    args: ["0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310", tokenId],
   });
 
   const execute = await walletClient.writeContract(request);
@@ -120,7 +120,7 @@ const readAllowance = async (tokenContractAddress, ownerAddress) => {
     address: tokenContractAddress,
     abi: erc20Abi.abi,
     functionName: "allowance",
-    args: [ownerAddress, "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE"],
+    args: [ownerAddress, "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310"],
   });
 
   return result;

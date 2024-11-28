@@ -137,7 +137,7 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
             name: "HandshakeTokenTransfer",
             version: "1",
             chainId: "199",
-            verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+            verifyingContract: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
           },
           types: {
             EIP712Domain: [
@@ -169,14 +169,14 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
         console.log("inside token");
         const amount = parseUnits(transaction.amount, transaction.decimals); // cn1 change needed in API
         // amount can't be null but api passed it null because when data is null
-
+        console.log(address);
         signature = await client.signTypedData({
           account: address,
           domain: {
             name: "HandshakeTokenTransfer",
             version: "1",
             chainId: "199",
-            verifyingContract: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+            verifyingContract: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
           },
           types: {
             EIP712Domain: [
@@ -323,7 +323,7 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+        address: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
         abi: handshakeABI.abi,
         functionName: "transferFromWithPermit",
         args,
@@ -411,7 +411,10 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
           address
         );
         console.log("NFT approved: ", approve);
-      } else if (transaction.tokenAddress === "") {
+      } else if (
+        transaction.tokenAddress ===
+        "0x0000000000000000000000000000000000000000"
+      ) {
         console.log("in native accordion");
         // Native token transfer logic, no approval needed
         TransactionDetails = [
@@ -461,7 +464,7 @@ const TransactionAccordion = ({ transactions, isSponsorTab }) => {
       // Simulate the contract execution
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: "0x184e1b0b544Da324e2D37Bb713b9D0c16c9eF671",
+        address: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
         abi: handshakeABI.abi,
         functionName: functionCalled,
         args,

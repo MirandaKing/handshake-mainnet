@@ -202,7 +202,7 @@ const InitiateTransaction = ({ onClose }) => {
   //         name: "HandshakeTokenTransfer",
   //         version: "1",
   //         chainId: "199",
-  //         verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+  //         verifyingContract: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
   //       },
   //       types: {
   //         EIP712Domain: [
@@ -311,7 +311,7 @@ const InitiateTransaction = ({ onClose }) => {
     });
 
     const tokenAddress = transaction.token;
-    const spender = "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE"; // Address of the sponsor contract
+    const spender = "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310"; // Address of the sponsor contract
     const value = parseUnits(transaction.amount, tokenDetails.decimals);
 
     const contract = getContract({
@@ -416,15 +416,15 @@ const InitiateTransaction = ({ onClose }) => {
       let signature;
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 604800);
       if (!isERC20) {
+        amount = parseEther(transaction.amount);
         console.log("in native");
-        amount = parseUnits(transaction.amount, tokenDetails.decimals);
         signature = await client.signTypedData({
           account: address,
           domain: {
             name: "HandshakeTokenTransfer",
             version: "1",
             chainId: "199",
-            verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+            verifyingContract: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
           },
           types: {
             EIP712Domain: [
@@ -436,29 +436,32 @@ const InitiateTransaction = ({ onClose }) => {
             initiateTransaction: [
               { name: "sender", type: "address" },
               { name: "receiver", type: "address" },
+              { name: "tokenAddress", type: "address" },
               { name: "amount", type: "uint256" },
               { name: "deadline", type: "uint256" },
-              { name: "nonce", type: "uint256" },
+              { name: "nonce", type: "bytes32" },
             ],
           },
           primaryType: "initiateTransaction",
           message: {
             sender: address,
             receiver: transaction.receiver,
+            tokenAddress: "0x0000000000000000000000000000000000000000",
             amount: amount,
             deadline: deadline,
             nonce: nonce,
           },
         });
       } else {
-        amount = parseEther(transaction.amount);
+        amount = parseUnits(transaction.amount, tokenDetails.decimals);
+
         signature = await client.signTypedData({
           account: address,
           domain: {
             name: "HandshakeTokenTransfer",
             version: "1",
             chainId: "199",
-            verifyingContract: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+            verifyingContract: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
           },
           types: {
             EIP712Domain: [
@@ -499,7 +502,7 @@ const InitiateTransaction = ({ onClose }) => {
           senderAddress: address,
           receiverAddress: transaction.receiver,
           amount: amount.toString(),
-          tokenAddress: transaction.token,
+          tokenAddress: "0x0000000000000000000000000000000000000000",
           senderSignature: signature,
           receiverSignature: "",
           status: "inititated",

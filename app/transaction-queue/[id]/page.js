@@ -51,7 +51,7 @@ export default function TransactionRequestDetails({ params }) {
         transaction.amount,
         transaction.tokenAddress !== ""
           ? transaction.tokenAddress
-          : "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+          : "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
         transaction.tokenName,
       ];
 
@@ -72,7 +72,7 @@ export default function TransactionRequestDetails({ params }) {
 
       const { request } = await publicClient.simulateContract({
         account: address,
-        address: "0x0856Ab13d8BFC644c1096554Bd23779dc42e4cDE",
+        address: "0x7fB0E393a6dBA3B9945ACFdD1145d96d493c7310",
         abi: handshakeABI,
         functionName: functionCalled,
         args: [
