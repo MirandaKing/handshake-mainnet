@@ -8,3 +8,7 @@ export const formSchemaTransaction = z.object({
 export const formSchemaLoadToken = z.object({
   token: z.string().min(1, { message: "Token address is required" }),
 });
+export const formSchemaNFTTransfer = z.object({
+  receiver: z.string().min(1, { message: "Receiver address is required" }),
+  tokenId: z.string().min(1, { message: "Token ID is required" }),
+});
