@@ -121,8 +121,8 @@ const InitiateTransaction = ({ onClose }) => {
       formSchemaLoadToken.parse(formData);
       setisLoadingToken(true);
       console.log(transaction.token, address);
-      console.log(await getTokenDetails(transaction.token));
-      const getToken = await getTokenDetails(transaction.token);
+      console.log(await getTokenDetails(transaction.token, address));
+      const getToken = await getTokenDetails(transaction.token, address);
       console.log(getToken);
       if (getToken !== null) {
         setTokenDetails(getToken);
