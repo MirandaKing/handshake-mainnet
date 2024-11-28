@@ -88,9 +88,11 @@ export default function SendNFT() {
       console.log("the details", nftDetails);
       const response = await fetch(nftDetails.tokenUri);
       if (!response.ok) {
+        toast.error("Failed to fetch NFT details");
         throw new Error("Failed to fetch NFT details");
       }
       if (address != nftDetails.owner) {
+        toast.error("You are not the owner of the TokenId");
         console.log("You are not the owner of the TokenId");
         throw new Error("You are not the owner of the TokenId");
       }
