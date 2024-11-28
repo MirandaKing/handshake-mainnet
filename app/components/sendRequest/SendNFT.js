@@ -99,9 +99,9 @@ export default function SendNFT() {
       const data = await response.json();
       setNftDetails(data);
     } catch (error) {
-      toast.error(
-        "Failed to load NFT details. Please check the Token ID and try again."
-      );
+      // toast.error(
+      //   "Failed to load NFT details. Please check the Token ID and try again."
+      // );
       console.error("Error loading NFT details:", error);
     } finally {
       setIsLoadingNFT(false);
