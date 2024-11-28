@@ -14,13 +14,43 @@ function SingleTranscationAccordianExpanded({
   selectedIndex,
   isRejectedBtn,
   handleActionButtonClick,
+  isSponsorTab,
 }) {
   const { address } = useAccount();
+  const [nftDetails, setNftDetails] = useState(null);
+
+  const loadNFTDetails = async (id) => {
+    setNftDetails(null);
+    try {
+      const response = await fetch(
+        `https://api.jsonbin.io/v3/b/67019e9ee41b4d34e43d9b6f`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch NFT details");
+      }
+      const data = await response.json();
+      console.log("nft", data);
+      setNftDetails(data);
+    } catch (error) {
+      toast.error(
+        "Failed to load NFT details. Please check the Token ID and try again."
+      );
+      console.error("Error loading NFT details:", error);
+    }
+  };
+  useEffect(() => {
+    const getNftDetails = async () => {
+      if (transaction.isNFT) {
+        await loadNFTDetails();
+      }
+    };
+    getNftDetails();
+  }, [transaction]);
 
   return (
     <>
       <div className="expanded-single-tx-parent">
-        <div className="left">
+        <div className="left border-r-none md:border-r border-[#dcdee0]">
           <div className="left-child">
             <div className="expaned-left-top">
               <div
@@ -31,12 +61,18 @@ function SingleTranscationAccordianExpanded({
                 }}
               >
                 Send
-                <span style={{ fontWeight: "700", marginLeft: "5px" }}>
-                  {formatUnits(transaction.amount, transaction.decimals)}
-                  <span style={{ marginLeft: "5px", marginRight: "5px" }}>
-                    {transaction.tokenName}
+                {transaction.isNFT ? (
+                  <span style={{ fontWeight: "700", marginLeft: "5px" }}>
+                    NFT
                   </span>
-                </span>
+                ) : (
+                  <span style={{ fontWeight: "700", marginLeft: "5px" }}>
+                    {formatUnits(transaction.amount, transaction.decimals)}
+                    <span style={{ marginLeft: "5px", marginRight: "5px" }}>
+                      {transaction.tokenName}
+                    </span>
+                  </span>
+                )}
                 to:
               </div>
               <div style={{ marginTop: "10px", marginBottom: "20px" }}>
@@ -57,56 +93,120 @@ function SingleTranscationAccordianExpanded({
                       short={true}
                     />
                   </div>
+                  {address && address === transaction.receiverAddress ? (
+                    <span className="ml-1 rounded-full bg-[#29FF81] py-[0] px-2 text-black text-sm">
+                      You
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
-            <div className="expaned-left-bottom">
-              <div className="lables">
-                <div className="lable">Nonce:</div>
-                <div className="lable">Transaction Hash:</div>
-                <div className="lable">Initiated Date:</div>
-                <div className="lable">Status:</div>
-
-                <div className="lable">Sender:</div>
-              </div>
-              <div className="values">
-                <div className="value">{transaction.nonce}</div>
-                <div className="value">
-                  <a
-                    href={`https://bttcscan.com/tx/${transaction.transactionHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    txHash
-                  </a>
+            <div className="expaned-left-bottom flex flex-col">
+              <div className="flex flex-row justify-start items-start gap-4">
+                <div className="lables">
+                  <div className="lable">Sponsored:</div>
+                  <div className="lable">Transaction Hash:</div>
+                  <div className="lable">Initiated Date:</div>
+                  <div className="lable">Status:</div>
+                  <div className="lable">Sender:</div>
                 </div>
-                <div className="value">{transaction.initiateDate}</div>
-                <div className="value">{transaction.status}</div>
-                <div className="value">
-                  <div className="table-user">
-                    <Blockies
-                      className="table-user-gradient"
-                      seed={
-                        transaction.senderAddress
-                          ? transaction.senderAddress
-                          : null
-                      }
-                      size={10}
-                      scale={3}
-                    />
-                    <div className="table-user-details">
-                      <AddressWithCopy
-                        address={transaction.senderAddress}
-                        short={true}
+                <div className="values">
+                  <div className="value">
+                    {transaction.isSponsored ? "Yes" : "No"}
+                  </div>
+                  <div className="value">
+                    {transaction.transactionHash ? (
+                      <Link
+                        href={`https://testnet.bttcscan.com/tx/${transaction.transactionHash}`}
+                        target="_blank"
+                        className="underline decoration-2 hover:decoration-[#29FF81]"
+                      >
+                        Open Link
+                      </Link>
+                    ) : (
+                      "txHash"
+                    )}
+                  </div>
+                  <div className="value">
+                    {transaction?.initiateDate
+                      ? formatToHumanReadableDate(transaction.initiateDate)
+                      : ""}
+                  </div>
+                  <div className="value">{transaction.status}</div>
+                  <div className="value">
+                    <div className="table-user">
+                      <Blockies
+                        className="table-user-gradient"
+                        seed={
+                          transaction.senderAddress
+                            ? transaction.senderAddress
+                            : null
+                        }
+                        size={10}
+                        scale={3}
                       />
+                      <div className="table-user-details">
+                        <AddressWithCopy
+                          address={transaction.senderAddress}
+                          short={true}
+                        />
+                      </div>
+                      {address && address === transaction.senderAddress ? (
+                        <span className="ml-1 rounded-full bg-[#29FF81] py-[0] px-2 text-black text-sm">
+                          You
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 </div>
               </div>
+              {/* nftDetails Section */}
+              <div>
+                {nftDetails && (
+                  <div className="bg-gray-100 p-4 rounded-md ">
+                    <div className="max-w-[80%] mx-auto space-y-4">
+                      <h3 className="font-semibold text-gray-800 mb-2">
+                        NFT Details
+                      </h3>
+                      {nftDetails.record.image && (
+                        <div className="relative w-full h-52 flex justify-center items-center">
+                          <img
+                            src={nftDetails.record.image}
+                            alt={nftDetails.record.name}
+                            layout="fill"
+                            objectFit="contain"
+                            className="rounded-md max-h-full"
+                          />
+                        </div>
+                      )}
+                      <p className="text-sm text-gray-600">
+                        Name:{" "}
+                        <span className="font-semibold text-gray-800">
+                          {nftDetails.record.name}
+                        </span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Description:{" "}
+                        <span className="font-semibold text-gray-800">
+                          {nftDetails.record.description}
+                        </span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Created At:{" "}
+                        <span className="font-semibold text-gray-800">
+                          {new Date(
+                            nftDetails.metadata.createdAt
+                          ).toLocaleString()}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-        <div className="right">
+        <div className="right border-t md:border-none">
           <div className="process">
             <ul>
               <li
@@ -147,7 +247,9 @@ function SingleTranscationAccordianExpanded({
                   {transaction.status === "approved" ||
                   transaction.status === "inititated" ||
                   transaction.status === "rejected"
-                    ? "Waiting for Sender to Execute"
+                    ? isSponsorTab && transaction.senderAddress !== address
+                      ? "Waiting for Sponsor to Execute"
+                      : "Waiting for Sender to Execute"
                     : transaction.status === "completed"
                     ? "Executed"
                     : null}
@@ -181,9 +283,11 @@ function SingleTranscationAccordianExpanded({
               <>
                 <button
                   className={
-                    address &&
-                    transaction.senderAddress === address &&
-                    transaction.status === "inititated"
+                    isSponsorTab && transaction.status === "approved"
+                      ? "execute-action-btn action-btn"
+                      : address &&
+                        transaction.senderAddress === address &&
+                        transaction.status === "inititated"
                       ? "waiting-action-btn action-btn"
                       : transaction.senderAddress === address &&
                         transaction.status === "approved"
@@ -199,6 +303,10 @@ function SingleTranscationAccordianExpanded({
                   isRejectedBtn !== index &&
                   selectedIndex === index
                     ? "Loading..."
+                    : isSponsorTab &&
+                      transaction.status === "approved" &&
+                      transaction.senderAddress !== address
+                    ? "Sponsor Transaction"
                     : address &&
                       transaction.senderAddress === address &&
                       transaction.status === "inititated"
@@ -211,21 +319,41 @@ function SingleTranscationAccordianExpanded({
                     ? "Approve"
                     : transaction.status === "rejected"
                     ? "Rejected"
-                    : "waiting"}
+                    : "Waiting"}
                 </button>
-                <button
-                  className="rejected-action-btn action-btn"
-                  onClick={() => cancelTransaction(transaction, index)}
-                >
-                  {isLoading && isRejectedBtn === index
-                    ? "Loading..."
-                    : "Reject"}
-                </button>
+                {!isSponsorTab && (
+                  <button
+                    className="rejected-action-btn action-btn"
+                    onClick={() => cancelTransaction(transaction, index)}
+                  >
+                    {isLoading && isRejectedBtn === index
+                      ? "Loading..."
+                      : "Reject"}
+                  </button>
+                )}
               </>
             )}
           </div>
         </div>
       </div>
+      {isSponsorTab && (
+        <div
+          className="my-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md text-left"
+          role="alert"
+        >
+          <p className="font-bold mb-2">⭐ Sponsored Transaction</p>
+          <p className="text-sm">
+            This transaction is sponsored, meaning zero gas fees for sender!
+          </p>
+          <p className="text-sm">
+            Enjoy faster and more cost-effective transactions on the network.
+          </p>
+          <p className="mt-3 text-sm italic">
+            Note: Currently, for testing purposes, anyone can be the sponsor and
+            execute sponsored transactions by covering the gas fees.
+          </p>
+        </div>
+      )}
     </>
   );
 }

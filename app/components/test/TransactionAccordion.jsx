@@ -102,7 +102,7 @@ if (typeof window !== "undefined" && window.ethereum) {
     transport: custom(window ? window.ethereum : ""),
   });
 }
-const TransactionAccordion = ({ transactions }) => {
+const TransactionAccordion = ({ transactions, isSponsorTab }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isRejectedBtn, setIsRejectedBtn] = useState(-1);
