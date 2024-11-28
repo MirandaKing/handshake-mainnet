@@ -9,7 +9,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { styled } from "@mui/material/styles";
 import { Grid } from "@mui/material";
 
-import handshakeABI from "../../transaction-queue/[id]/Handshake.json";
+import handshakeABI from "../../transaction-queue/[id]/handshakeABI.json";
 import {
   createPublicClient,
   createWalletClient,
